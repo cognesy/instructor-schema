@@ -5,7 +5,7 @@ namespace Cognesy\Schema\Factories\Traits\TypeDetailsFactory;
 use Cognesy\Schema\Data\TypeDetails;
 use Cognesy\Schema\Utils\ClassInfo;
 
-trait HandlesBuilders
+trait HandlesFactoryMethods
 {
     /**
      * Create TypeDetails for atom (scalar) type
