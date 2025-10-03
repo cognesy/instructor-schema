@@ -56,7 +56,7 @@ class SchemaFactory
         // if anyType is a dynamic schema provider, throw an exception
         // to prevent using it directly, as it should be used via its own schema method
         if ($anyType instanceof CanProvideSchema) {
-            return $anyType->schema();
+            return $anyType->toSchema();
         }
 
         // if anyType is a JSON schema provider, convert it to Schema
@@ -68,7 +68,6 @@ class SchemaFactory
         $type = match(true) {
             $anyType instanceof TypeDetails => $anyType,
             is_string($anyType) => TypeDetails::fromTypeName($anyType),
-            is_object($anyType) => TypeDetails::fromTypeName(get_class($anyType)),
             default => throw new \Exception('Unknown input type: '.gettype($anyType)),
         };
 
@@ -81,7 +80,7 @@ class SchemaFactory
                 schema: $this->makeSchema($type));
         }
 
-        return $this->schemaMap->get($anyType);
+        return $this->schemaMap->get($typeString);
     }
 
     /**

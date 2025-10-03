@@ -8,24 +8,33 @@ class EnumInfo extends ClassInfo
 {
     protected ReflectionEnum $reflectionEnum;
 
+    /**
+     * @param class-string $class
+     */
     public function __construct(string $class) {
         parent::__construct($class);
-        $this->reflectionEnum = new ReflectionEnum($class);
+        /** @var class-string<\UnitEnum> $enumClass */
+        $enumClass = $this->class;
+        $this->reflectionEnum = new ReflectionEnum($enumClass);
     }
 
+    #[\Override]
     public function isEnum() : bool {
         return true;
     }
 
+    #[\Override]
     public function isBacked() : bool {
         return isset($this->reflectionEnum)
             && $this->reflectionEnum->isBacked();
     }
 
     public function enumBackingType() : string {
-        return isset($this->reflectionEnum)
-            ? $this->reflectionEnum->getBackingType()?->getName()
-            : throw new \Exception("Not an enum");
+        if (!isset($this->reflectionEnum)) {
+            throw new \Exception("Not an enum");
+        }
+        $backingType = $this->reflectionEnum->getBackingType();
+        return $backingType instanceof \ReflectionNamedType ? $backingType->getName() : '';
     }
 
     /** @return string[]|int[] */
@@ -34,7 +43,10 @@ class EnumInfo extends ClassInfo
 
         $values = [];
         foreach ($enum->getCases() as $item) {
-            $values[] = $item->getValue()->value;
+            $enumInstance = $item->getValue();
+            if ($enumInstance instanceof \BackedEnum) {
+                $values[] = $enumInstance->value;
+            }
         }
         return $values;
     }

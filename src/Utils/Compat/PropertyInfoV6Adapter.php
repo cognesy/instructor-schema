@@ -15,7 +15,7 @@ class PropertyInfoV6Adapter implements CanGetPropertyType
     private string $class;
     private string $propertyName;
 
-    private PropertyInfoExtractor $extractor;
+    private ?PropertyInfoExtractor $extractor = null;
 
     public function __construct(
         string $class,
@@ -29,6 +29,7 @@ class PropertyInfoV6Adapter implements CanGetPropertyType
         $this->propertyName = $propertyName;
     }
 
+    #[\Override]
     public function getPropertyTypeDetails(): TypeDetails {
         $type = $this->makeTypes();
         if ($type === null || count($type) === 0) {
@@ -38,6 +39,7 @@ class PropertyInfoV6Adapter implements CanGetPropertyType
         return TypeDetails::fromPhpDocTypeString($typeString);
     }
 
+    #[\Override]
     public function isPropertyNullable(): bool {
         $types = $this->makeTypes();
         if (is_null($types)) {
@@ -63,9 +65,9 @@ class PropertyInfoV6Adapter implements CanGetPropertyType
         $result = [];
         foreach ($types as $type) {
             if ($type->isCollection()) { $result[] = $this->getCollectionOrArrayType($type); }
-            if (in_array($type->getBuiltinType(), TypeDetails::PHP_SCALAR_TYPES)) { $result[] = $type->getBuiltinType(); }
+            if (in_array($type->getBuiltinType(), TypeDetails::PHP_SCALAR_TYPES, true)) { $result[] = $type->getBuiltinType(); }
             if ($type->getBuiltinType() === Type::BUILTIN_TYPE_ARRAY) { $result[] = 'array'; }
-            if ($type->getClassName()) { $result[] = $type->getClassName() ?? 'object'; }
+            if ($type->getClassName()) { $result[] = $type->getClassName(); }
             //if ($type->isNullable()) { $result[] = 'null'; }
         }
         return implode('|', $result);
@@ -76,11 +78,8 @@ class PropertyInfoV6Adapter implements CanGetPropertyType
 
         $result = [];
         foreach ($valueTypes as $valueType) {
-            if (in_array($valueType->getBuiltinType(), TypeDetails::PHP_SCALAR_TYPES)) { $result[] = $valueType->getBuiltinType() . '[]'; }
-            if (!empty($valueType->getClassName())) { $result[] = $valueType->getClassName()
-                ? ($valueType->getClassName() . '[]')
-                : 'array';  // collection of unspecified objects is considered an array
-            }
+            if (in_array($valueType->getBuiltinType(), TypeDetails::PHP_SCALAR_TYPES, true)) { $result[] = $valueType->getBuiltinType() . '[]'; }
+            if (!empty($valueType->getClassName())) { $result[] = $valueType->getClassName() . '[]'; }
             if ($valueType->isCollection()) { $result[] = 'array'; } // collection of collections is considered an array
             if ($valueType->getBuiltinType() === Type::BUILTIN_TYPE_ARRAY) { $result[] = 'array'; }
             //if ($valueType->isNullable()) { $result[] = 'null'; }

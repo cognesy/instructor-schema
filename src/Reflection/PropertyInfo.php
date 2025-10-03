@@ -14,6 +14,7 @@ use ReflectionProperty;
 class PropertyInfo
 {
     private ReflectionProperty $reflection;
+    /** @var class-string */
     private string $class;
     private string $propertyName;
     private ReflectionClass $parentClass;
@@ -116,9 +117,9 @@ class PropertyInfo
         }
 
         // case 3: property is NOT public, but has a mutator method and the mutator parameter is not nullable
-        if (!$this->isPublic() && $this->hasMutatorCandidates($this->propertyName)) {
+        if ($this->hasMutatorCandidates($this->propertyName)) {
             $mutatorParam = $this->getMutatorParam($this->propertyName);
-            if (is_null($mutatorParam)) {
+            if ($mutatorParam === null) {
                 return false; // no mutator found
             }
             return match(true) {
@@ -155,12 +156,8 @@ class PropertyInfo
     // INTERNAL /////////////////////////////////////////////////////////////////////////
 
     private function makeAdapter() : CanGetPropertyType {
-//        $useV7Adapter = class_exists("\Symfony\Component\TypeInfo\Type")
-//            && interface_exists("\Symfony\Component\TypeInfo\TypeInterface");
-
         $class = "Symfony\Component\PropertyInfo\PropertyInfoExtractor";
-        $useV7Adapter = class_exists($class)
-            && method_exists($class, 'getType');
+        $useV7Adapter = class_exists($class);
 
         return match(true) {
             $useV7Adapter => new PropertyInfoV7Adapter(
@@ -203,7 +200,8 @@ class PropertyInfo
                 continue; // Skip methods other than with one parameter
             }
             // Check if the method returns a value
-            if ('void' !== $method->getReturnType()?->getName()) {
+            $returnType = $method->getReturnType();
+            if ($returnType instanceof \ReflectionNamedType && 'void' !== $returnType->getName()) {
                 continue; // Skip methods that do not return void
             }
             return true;
@@ -211,6 +209,7 @@ class PropertyInfo
         return $this->hasMutatorCandidates = false;
     }
 
+    /** @phpstan-ignore-next-line - method is intentionally unused */
     private function hasAccessorCandidates(string $propertyName) : bool {
         if (!is_null($this->hasAccessorCandidates)) {
             return $this->hasAccessorCandidates;
@@ -238,7 +237,8 @@ class PropertyInfo
                 continue;
             }
             // Check if the method returns a value
-            if ('void' === $method->getReturnType()?->getName()) {
+            $returnType = $method->getReturnType();
+            if ($returnType instanceof \ReflectionNamedType && 'void' === $returnType->getName()) {
                 continue;
             }
             return true;

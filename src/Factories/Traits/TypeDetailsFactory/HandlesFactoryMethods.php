@@ -17,7 +17,7 @@ trait HandlesFactoryMethods
         if (empty($type)) {
             return $this->mixedType();
         }
-        if (!in_array($type, TypeDetails::PHP_SCALAR_TYPES)) {
+        if (!in_array($type, TypeDetails::PHP_SCALAR_TYPES, true)) {
             throw new \Exception('Unsupported scalar type: '.$type);
         }
         return new TypeDetails(
@@ -54,8 +54,12 @@ trait HandlesFactoryMethods
         $nestedType = match (true) {
             ($typeName == TypeDetails::PHP_MIXED) => throw new \Exception('Mixed nested type not supported for collections - use array'),
             ($typeName == TypeDetails::PHP_ARRAY) => throw new \Exception('You have not specified collection element type'),
-            (in_array($typeName, TypeDetails::PHP_SCALAR_TYPES)) => $this->scalarType($typeName),
-            default => $this->objectType($typeName),
+            (in_array($typeName, TypeDetails::PHP_SCALAR_TYPES, true)) => $this->scalarType($typeName),
+            default => (function() use ($typeName) {
+                /** @var class-string $objectClass */
+                $objectClass = $typeName;
+                return $this->objectType($objectClass);
+            })(),
         };
         return new TypeDetails(
             type: TypeDetails::PHP_COLLECTION,
@@ -68,7 +72,7 @@ trait HandlesFactoryMethods
     /**
      * Create TypeDetails for object type
      *
-     * @param string $typeName
+     * @param class-string $typeName
      * @return TypeDetails
      */
     public function objectType(string $typeName) : TypeDetails {
@@ -86,17 +90,20 @@ trait HandlesFactoryMethods
     /**
      * Create TypeDetails for enum type
      *
-     * @param string $typeName
+     * @param class-string $typeName
      * @return TypeDetails
      */
     public function enumType(string $typeName, ?string $enumType = null, ?array $enumValues = null) : TypeDetails {
         $classInfo = ClassInfo::fromString($typeName);
         // enum specific
+        if (!$classInfo instanceof \Cognesy\Schema\Reflection\EnumInfo) {
+            throw new \Exception('Type must be an enum');
+        }
         if (!$classInfo->isBacked()) {
             throw new \Exception('Enum must be backed by a string or int');
         }
         $backingType = $enumType ?? $classInfo->enumBackingType();
-        if (!in_array($backingType, TypeDetails::PHP_ENUM_TYPES)) {
+        if (!in_array($backingType, TypeDetails::PHP_ENUM_TYPES, true)) {
             throw new \Exception('Enum must be backed by a string or int');
         }
         return new TypeDetails(

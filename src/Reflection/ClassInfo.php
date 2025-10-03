@@ -8,11 +8,15 @@ use Exception;
 use ReflectionClass;
 
 class ClassInfo {
+    /** @var class-string */
     protected string $class;
     protected ReflectionClass $reflectionClass;
     protected array $propertyInfos = [];
     protected bool $isNullable = false;
 
+    /**
+     * @param class-string $class
+     */
     protected function __construct(string $class) {
         // if class name starts with ?, remove it
         if (str_starts_with($class, '?')) {
@@ -20,6 +24,7 @@ class ClassInfo {
             $this->isNullable = true;
         }
         $this->class = $class;
+        /** @var class-string $class */
         $this->reflectionClass = new ReflectionClass($class);
     }
 
@@ -125,7 +130,7 @@ class ClassInfo {
         if (!class_exists($this->class)) {
             return false;
         }
-        return in_array($interface, class_implements($this->class));
+        return in_array($interface, class_implements($this->class), true);
     }
 
     // CONSTRUCTOR ///////////////////////////////////////////////////////////////
@@ -144,7 +149,7 @@ class ClassInfo {
 
     /**
      * @param ClassInfo $classInfo
-     * @param array<callable> $filters
+     * @param array<callable(PropertyInfo): bool> $filters
      * @return array<string>
      */
     public function getFilteredPropertyNames(array $filters) : array {
@@ -156,7 +161,7 @@ class ClassInfo {
 
     /**
      * @param ClassInfo $classInfo
-     * @param array<callable> $filters
+     * @param array<callable(PropertyInfo): bool> $filters
      * @return array<PropertyInfo>
      */
     public function getFilteredProperties(array $filters) : array {
@@ -166,7 +171,7 @@ class ClassInfo {
     // INTERNAL /////////////////////////////////////////////////////////////////
 
     /**
-     * @param callable[] $filters
+     * @param array<callable(PropertyInfo): bool> $filters
      * @return PropertyInfo[]
      */
     protected function filterProperties(array $filters) : array {
@@ -191,7 +196,8 @@ class ClassInfo {
     }
 
     /**
-     * @param ClassInfo $classInfo
+     * @param array<callable(PropertyInfo): bool> $filters
+     * @param callable(PropertyInfo): mixed $extractor
      * @return array<string, PropertyInfo>
      */
     protected function getFilteredPropertyData(array $filters, callable $extractor) : array {
